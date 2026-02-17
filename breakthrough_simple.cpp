@@ -1,41 +1,5 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
-#include <vector>
+#include "breakthrough_simple.hpp"
 
-// ============================================================================
-// TYPES DE BASE
-// ============================================================================
-
-enum Case
-{
-    VIDE = '.',
-    WHITE = '0', // white - O dans la notation
-    BLACK = '1'  // black - @ dans la notation
-};
-
-struct Position
-{
-    int ligne; // 0-7 (0 = ligne 8, 7 = ligne 1)
-    int col;   // 0-7 (0 = colonne A, 7 = colonne H)
-};
-
-struct Coup
-{
-    Position from;
-    Position to;
-};
-
-struct Plateau
-{
-    Case cases[8][8];
-};
-
-// ============================================================================
-// FONCTIONS UTILITAIRES
-// ============================================================================
-
-// Initialise un plateau à partir d'une chaîne (format ludii)
 void init_plateau(Plateau *p, const char *str)
 {
     for (int i = 0; i < 8; i++)
@@ -43,9 +7,9 @@ void init_plateau(Plateau *p, const char *str)
         for (int j = 0; j < 8; j++)
         {
             char c = str[i * 8 + j];
-            if (c == '@')
+            if (c == '1')
                 p->cases[i][j] = BLACK;
-            else if (c == 'O')
+            else if (c == '0')
                 p->cases[i][j] = WHITE;
             else
                 p->cases[i][j] = VIDE;
@@ -53,7 +17,6 @@ void init_plateau(Plateau *p, const char *str)
     }
 }
 
-// Affiche le plateau
 void afficher_plateau(const Plateau *p)
 {
     printf("  A B C D E F G H\n");
@@ -62,19 +25,13 @@ void afficher_plateau(const Plateau *p)
         printf("%d ", 8 - i);
         for (int j = 0; j < 8; j++)
         {
-            if (p->cases[i][j] == BLACK)
-                printf("1 ");
-            else if (p->cases[i][j] == WHITE)
-                printf("0 ");
-            else
-                printf(". ");
+            printf("%c ", p->cases[i][j]);
         }
         printf("%d\n", 8 - i);
     }
     printf("  A B C D E F G H\n");
 }
 
-// Affiche un coup au format "A1-B2"
 void afficher_coup(const Coup *c)
 {
     printf("%c%d-%c%d\n",
@@ -82,22 +39,15 @@ void afficher_coup(const Coup *c)
            'A' + c->to.col, 8 - c->to.ligne);
 }
 
-// ============================================================================
-// GÉNÉRATION DE COUPS
-// ============================================================================
-
-// Vérifie si une position est dans le plateau
 bool dans_plateau(int ligne, int col)
 {
     return ligne >= 0 && ligne < 8 && col >= 0 && col < 8;
 }
 
-// Génère tous les coups légaux pour un joueur
 void generer_coups(const Plateau *p, Case joueur, std::vector<Coup> *coups)
 {
     coups->clear();
 
-    // Direction : NOIR descend (+1), BLANC monte (-1)
     int direction = (joueur == BLACK) ? 1 : -1;
 
     for (int i = 0; i < 8; i++)
@@ -107,12 +57,10 @@ void generer_coups(const Plateau *p, Case joueur, std::vector<Coup> *coups)
             if (p->cases[i][j] != joueur)
                 continue;
 
-            // 3 mouvements possibles : avant, diag gauche, diag droite
             int destinations[3][2] = {
-                {i + direction, j},     // Avant
-                {i + direction, j - 1}, // Diag gauche
-                {i + direction, j + 1}  // Diag droite
-            };
+                {i + direction, j},
+                {i + direction, j - 1},
+                {i + direction, j + 1}};
 
             for (int k = 0; k < 3; k++)
             {
@@ -124,15 +72,13 @@ void generer_coups(const Plateau *p, Case joueur, std::vector<Coup> *coups)
 
                 Case dest = p->cases[ni][nj];
 
-                // Avancer droit : case doit être vide
                 if (k == 0 && dest != VIDE)
                     continue;
 
-                // Diagonale : peut être vide OU ennemi
                 if (k > 0)
                 {
                     if (dest == joueur)
-                        continue; // Pas capturer allié
+                        continue;
                 }
 
                 Coup c;
@@ -146,29 +92,18 @@ void generer_coups(const Plateau *p, Case joueur, std::vector<Coup> *coups)
     }
 }
 
-// ============================================================================
-// JOUER / DÉJOUER UN COUP
-// ============================================================================
-
-// Applique un coup sur le plateau
 void jouer_coup(Plateau *p, const Coup *c)
 {
     p->cases[c->to.ligne][c->to.col] = p->cases[c->from.ligne][c->from.col];
     p->cases[c->from.ligne][c->from.col] = VIDE;
 }
 
-// Annule un coup (pour minimax ou MCTS)
 void dejouer_coup(Plateau *p, const Coup *c, Case piece_capturee)
 {
     p->cases[c->from.ligne][c->from.col] = p->cases[c->to.ligne][c->to.col];
     p->cases[c->to.ligne][c->to.col] = piece_capturee;
 }
 
-// ============================================================================
-// VÉRIFICATION DE FIN
-// ============================================================================
-
-// Vérifie si un joueur a gagné (pion sur ligne adverse)
 bool a_gagne(const Plateau *p, Case joueur)
 {
     int ligne_victoire = (joueur == BLACK) ? 7 : 0;
@@ -183,22 +118,15 @@ bool a_gagne(const Plateau *p, Case joueur)
     return false;
 }
 
-// Retourne l'adversaire
 Case adversaire(Case joueur)
 {
     return (joueur == BLACK) ? WHITE : BLACK;
 }
 
-// ============================================================================
-// FONCTION D'ÉVALUATION
-// ============================================================================
-
-// Évalue la position du point de vue du joueur
 int evaluer(const Plateau *p, Case joueur)
 {
     Case adv = adversaire(joueur);
 
-    // Vérifier victoire
     if (a_gagne(p, joueur))
         return 10000;
     if (a_gagne(p, adv))
@@ -206,11 +134,9 @@ int evaluer(const Plateau *p, Case joueur)
 
     int score = 0;
 
-    // 1. Compter les pions (valeur matérielle)
     int mes_pions = 0;
     int ses_pions = 0;
 
-    // 2. Avancement des pions (plus un pion est proche de la promotion, mieux c'est)
     int mon_avancement = 0;
     int son_avancement = 0;
 
@@ -221,15 +147,14 @@ int evaluer(const Plateau *p, Case joueur)
             if (p->cases[i][j] == joueur)
             {
                 mes_pions++;
-                // Avancement : pour NOIR (descend), ligne 7 = promotion (distance = 7-i)
-                // Pour BLANC (monte), ligne 0 = promotion (distance = i)
+
                 if (joueur == BLACK)
                 {
-                    mon_avancement += (7 - i); // Plus la ligne est haute, mieux c'est
+                    mon_avancement += (7 - i);
                 }
                 else
                 {
-                    mon_avancement += i; // Plus la ligne est basse, mieux c'est
+                    mon_avancement += i;
                 }
             }
             else if (p->cases[i][j] == adv)
@@ -247,65 +172,45 @@ int evaluer(const Plateau *p, Case joueur)
         }
     }
 
-    // Score = matériel + avancement
-    score += (mes_pions - ses_pions) * 100;          // Chaque pion vaut 100
-    score += (mon_avancement - son_avancement) * 10; // Avancement vaut 10 par ligne
+    score += (mes_pions - ses_pions) * 100;
+    score += (mon_avancement - son_avancement) * 10;
 
     return score;
 }
 
-// ============================================================================
-// ALGORITHME : "THREAT WAVE" (Vague de Menaces)
-// ============================================================================
-
-struct EvaluationCoup
-{
-    Coup coup;
-    int score_immediat;      // Score juste après notre coup
-    int score_apres_riposte; // Score après la meilleure riposte adverse
-    int score_final;         // Combinaison des deux
-};
-
-// Évalue les patterns tactiques d'un coup
 int evaluer_patterns_coup(Plateau *p, const Coup *c, Case joueur)
 {
     int score = 0;
     Case adv = adversaire(joueur);
     int direction = (joueur == BLACK) ? 1 : -1;
 
-    // PATTERN 1 : Promotion imminente (pion à 1 case de la victoire)
     int ligne_victoire = (joueur == BLACK) ? 7 : 0;
     if (c->to.ligne == ligne_victoire)
     {
-        return 50000; // VICTOIRE !
+        return 50000;
     }
     if ((joueur == BLACK && c->to.ligne == 6) ||
         (joueur == WHITE && c->to.ligne == 1))
     {
-        score += 5000; // Une case de la victoire
+        score += 5000;
     }
 
-    // PATTERN 2 : Capture (éliminer un ennemi)
     if (p->cases[c->to.ligne][c->to.col] == adv)
     {
         score += 800;
-        // Bonus si on capture un pion avancé
         int distance_ennemie = (adv == BLACK) ? (7 - c->to.ligne) : c->to.ligne;
         score += distance_ennemie * 50;
     }
 
-    // PATTERN 3 : Avancer un pion (course à la promotion)
     int distance_avant = (joueur == BLACK) ? (7 - c->from.ligne) : c->from.ligne;
     int distance_apres = (joueur == BLACK) ? (7 - c->to.ligne) : c->to.ligne;
     score += (distance_apres - distance_avant) * 200;
 
-    // PATTERN 4 : Contrôle du centre (colonnes C,D,E,F)
     if (c->to.col >= 2 && c->to.col <= 5)
     {
         score += 100;
     }
 
-    // PATTERN 5 : Pion protégé (a des alliés en diagonale arrière)
     int arriere = c->to.ligne - direction;
     if (dans_plateau(arriere, c->to.col - 1) && p->cases[arriere][c->to.col - 1] == joueur)
     {
@@ -316,11 +221,9 @@ int evaluer_patterns_coup(Plateau *p, const Coup *c, Case joueur)
         score += 80;
     }
 
-    // PATTERN 6 : Créer des menaces multiples (plusieurs pions proches de la promotion)
     int ligne_menace = (joueur == BLACK) ? 5 : 2;
     if (c->to.ligne == ligne_menace)
     {
-        // Compter combien d'alliés sont aussi sur cette ligne ou plus avancés
         int allies_avances = 0;
         for (int j = 0; j < 8; j++)
         {
@@ -333,20 +236,18 @@ int evaluer_patterns_coup(Plateau *p, const Coup *c, Case joueur)
         score += allies_avances * 150;
     }
 
-    // PATTERN 7 : Éviter les colonnes bloquées
     int ligne_suivante = c->to.ligne + direction;
     if (dans_plateau(ligne_suivante, c->to.col))
     {
         if (p->cases[ligne_suivante][c->to.col] == joueur)
         {
-            score -= 200; // Pion bloqué par un allié
+            score -= 200;
         }
     }
 
     return score;
 }
 
-// Trouve la meilleure riposte adverse (simulation 1 coup)
 int evaluer_meilleure_riposte(Plateau *p, Case joueur)
 {
     Case adv = adversaire(joueur);
@@ -355,7 +256,7 @@ int evaluer_meilleure_riposte(Plateau *p, Case joueur)
 
     if (coups_adv.empty())
     {
-        return 10000; // Adversaire ne peut pas jouer = on gagne
+        return 10000;
     }
 
     int pire_score = 99999;
@@ -366,7 +267,6 @@ int evaluer_meilleure_riposte(Plateau *p, Case joueur)
         Case piece_capturee = p->cases[c.to.ligne][c.to.col];
         jouer_coup(p, &c);
 
-        // Évaluation simple après riposte adverse
         int score = evaluer(p, joueur);
 
         dejouer_coup(p, &c, piece_capturee);
@@ -380,8 +280,7 @@ int evaluer_meilleure_riposte(Plateau *p, Case joueur)
     return pire_score;
 }
 
-// ALGORITHME PRINCIPAL : Threat Wave
-Coup choisir_coup_threat_wave(Plateau *p, Case joueur)
+Coup choisir_coup_my_algo(Plateau *p, Case joueur)
 {
     std::vector<Coup> coups;
     generer_coups(p, joueur, &coups);
@@ -395,20 +294,16 @@ Coup choisir_coup_threat_wave(Plateau *p, Case joueur)
 
     std::vector<EvaluationCoup> evaluations;
 
-    // Phase 1 : Évaluer chaque coup avec patterns + simulation riposte
     for (size_t i = 0; i < coups.size(); i++)
     {
         EvaluationCoup eval;
         eval.coup = coups[i];
 
-        // Jouer notre coup
         Case piece_capturee = p->cases[coups[i].to.ligne][coups[i].to.col];
         jouer_coup(p, &coups[i]);
 
-        // Score immédiat basé sur patterns
         eval.score_immediat = evaluer_patterns_coup(p, &coups[i], joueur);
 
-        // Victoire immédiate ? Pas besoin de simuler
         if (a_gagne(p, joueur))
         {
             eval.score_immediat = 100000;
@@ -417,10 +312,8 @@ Coup choisir_coup_threat_wave(Plateau *p, Case joueur)
         }
         else
         {
-            // Simuler la meilleure riposte adverse
             eval.score_apres_riposte = evaluer_meilleure_riposte(p, joueur);
 
-            // Score final = pondération entre immédiat et après riposte
             eval.score_final = (eval.score_immediat * 60 + eval.score_apres_riposte * 40) / 100;
         }
 
@@ -429,7 +322,6 @@ Coup choisir_coup_threat_wave(Plateau *p, Case joueur)
         evaluations.push_back(eval);
     }
 
-    // Phase 2 : Choisir le meilleur coup
     int meilleur_idx = 0;
     int meilleur_score = evaluations[0].score_final;
 
@@ -445,54 +337,190 @@ Coup choisir_coup_threat_wave(Plateau *p, Case joueur)
     return evaluations[meilleur_idx].coup;
 }
 
-// ============================================================================
-// MAIN
-// ============================================================================
+
+void jouer_partie_humain_vs_ia()
+{
+    Plateau plateau;
+    init_plateau(&plateau, "1111111111111111................................0000000000000000");
+
+    Case joueur_humain = WHITE;
+    Case joueur_ia = BLACK;
+    Case joueur_actuel = joueur_humain;
+
+    int tour = 1;
+    const int MAX_TOURS = 200;
+
+    printf("BREAKTHROUGH : HUMAIN vs IA\n");
+    printf("But : Amener un pion sur la ligne adverse\n");
+    printf("Deplacement : 1 case vers l'avant ou diagonale\n\n");
+
+    afficher_plateau(&plateau);
+
+    while (tour <= MAX_TOURS)
+    {
+        printf("\n--- Tour %d ---\n", tour);
+
+        // Vérifier conditions de fin
+        if (a_gagne(&plateau, joueur_humain))
+        {
+            printf("VICTOIRE HUMAIN ! Un de vos pions a atteint la ligne 8 !\n");
+            break;
+        }
+        if (a_gagne(&plateau, joueur_ia))
+        {
+            printf("VICTOIRE IA ! Un pion noir a atteint la ligne 1 !\n");
+            break;
+        }
+
+        std::vector<Coup> coups;
+        generer_coups(&plateau, joueur_actuel, &coups);
+
+        if (coups.empty())
+        {
+            printf("Aucun coup possible - PAT\n");
+            break;
+        }
+
+        if (joueur_actuel == joueur_ia)
+        {
+            Coup coup_ia = choisir_coup_my_algo(&plateau, joueur_ia);
+            printf("IA joue : ");
+            afficher_coup(&coup_ia);
+            jouer_coup(&plateau, &coup_ia);
+        }
+        else
+        {
+            printf("Votre tour\n");
+            printf("Format: A1-B2\n");
+
+            char coup_str[10];
+            printf("Votre coup : ");
+            if (scanf("%s", coup_str) != 1)
+            {
+                printf("Erreur de saisie\n");
+                continue;
+            }
+
+            if (strlen(coup_str) != 5 || coup_str[2] != '-')
+            {
+                printf("Format invalide\n");
+                continue;
+            }
+
+            Position from, to;
+            from.col = coup_str[0] - 'A';
+            from.ligne = 8 - (coup_str[1] - '0');
+            to.col = coup_str[3] - 'A';
+            to.ligne = 8 - (coup_str[4] - '0');
+
+            bool coup_valide = false;
+            Coup coup_choisi;
+            for (size_t i = 0; i < coups.size(); i++)
+            {
+                if (coups[i].from.ligne == from.ligne && coups[i].from.col == from.col &&
+                    coups[i].to.ligne == to.ligne && coups[i].to.col == to.col)
+                {
+                    coup_valide = true;
+                    coup_choisi = coups[i];
+                    break;
+                }
+            }
+
+            if (!coup_valide)
+            {
+                printf("Coup invalide\n");
+                continue;
+            }
+
+            printf("Vous jouez : ");
+            afficher_coup(&coup_choisi);
+            jouer_coup(&plateau, &coup_choisi);
+        }
+
+        printf("\nPlateau apres le coup :\n");
+        afficher_plateau(&plateau);
+
+        joueur_actuel = adversaire(joueur_actuel);
+        tour++;
+    }
+
+    if (tour > MAX_TOURS)
+    {
+        printf("Partie trop longue - Match nul\n");
+    }
+
+    printf("FIN DE PARTIE\n");
+}
+
+void afficher_aide()
+{
+    printf("BREAKTHROUGH IA\n");
+    printf("Usage:\n");
+    printf("  %s partie                    # Jouer une partie humain vs IA\n", "breakthrough_simple");
+    printf("  %s <plateau> <joueur>         # Calculer un coup unique\n", "breakthrough_simple");
+    printf("\nExemples:\n");
+    printf("  %s partie\n", "breakthrough_simple");
+    printf("  %s 1111111111111111................................0000000000000000 0\n", "breakthrough_simple");
+    printf("\nNotation plateau (64 caracteres):\n");
+    printf("  1 = pion noir    0 = pion blanc    . = case vide\n");
+    printf("  Joueur: 1 (noir) ou 0 (blanc)\n");
+}
 
 int main(int argc, char **argv)
 {
     srand(time(NULL));
 
+    if (argc == 1 || (argc == 2 && (strcmp(argv[1], "help") == 0 || strcmp(argv[1], "--help") == 0)))
+    {
+        afficher_aide();
+        return 0;
+    }
+
+    if (argc >= 2 && strcmp(argv[1], "partie") == 0)
+    {
+        jouer_partie_humain_vs_ia();
+        return 0;
+    }
+
     if (argc < 3)
     {
-        printf("Usage: %s <plateau> <joueur> [debug]\n", argv[0]);
-        printf("Exemple: %s @@@@@@@@@@@@@@@@................................OOOOOOOOOOOOOOOO O debug\n", argv[0]);
+        printf("Erreur: Arguments insuffisants\n");
+        afficher_aide();
         return 1;
     }
 
     const char *plateau_str = argv[1];
     char joueur_char = argv[2][0];
 
-    // Mode debug (optionnel)
-    bool debug = false;
-    for (int i = 3; i < argc; i++)
+    if (strlen(plateau_str) != 64)
     {
-        if (argv[i][0] == 'd' || argv[i][0] == 'D')
-        {
-            debug = true;
-        }
+        printf("Erreur: Le plateau doit faire exactement 64 caracteres.\n");
+        return 1;
     }
 
-    // Initialiser plateau
     Plateau p;
     init_plateau(&p, plateau_str);
 
-    // Déterminer le joueur
-    Case joueur = (joueur_char == '@') ? BLACK : WHITE;
-
-    if (debug)
+    Case joueur;
+    if (joueur_char == '1')
     {
-        printf("board 1\n");
-        afficher_plateau(&p);
-        printf("Algorithme: Threat Wave\n");
+        joueur = BLACK;
+    }
+    else if (joueur_char == '0')
+    {
+        joueur = WHITE;
+    }
+    else
+    {
+        printf("Erreur: Joueur doit etre '1' (noir) ou '0' (blanc).\n");
+        return 1;
     }
 
-    // Choisir et afficher un coup avec Threat Wave
-    Coup c = choisir_coup_threat_wave(&p, joueur);
+    Coup c = choisir_coup_my_algo(&p, joueur);
 
     if (c.from.ligne == -1)
     {
-        printf("Aucun coup possible!\n");
+        printf("Aucun coup possible\n");
         return 1;
     }
 

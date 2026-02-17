@@ -1,0 +1,40 @@
+evaluer_patterns_coup
+
+victoire → +50000 (direct return, fini)
+quasi victoire (avant derniere ligne) → +5000 (presque gagné)
+capture ennemi → +800 base + dist*50 (+ proche victoire = + important)
+avancer vers but → +200 par case (progression = bon)
+centre (col 2-5) → +100 (evite bords, controle)
+support arriere diagonal → +80 par ally (protection mutuelle)
+ligne menace groupe → +150*nb_allies (attaque coordonnée)
+embouteillage (ally devant) → -200 (bloque passage, eviter)
+
+
+noir: dir=+1, victoire=7, quasi=6, menace=5
+blanc: dir=-1, victoire=0, quasi=1, menace=2
+
+
+
+memo: distance = combien cases jusqu'au but
+
+
+
+choisir_coup_my_algo = minimax prof1 HYBRIDE
+
+pour chaque coup possible:
+  score_immediat = evaluer_patterns_coup() → tactique pure
+  score_riposte = evaluer_meilleure_riposte() → minimax niveau 1
+  score_final = immediat*60% + riposte*40% → ponderation
+
+evaluer_meilleure_riposte:
+  teste TOUS coups adversaire
+  garde le PIRE score pour nous
+  = simulation defense
+
+DIFFERENCE avec minimax pur:
+- minimax pur = 100% riposte (defensif)  
+- notre algo = 60% tactique + 40% riposte (agressif)
+
+exemple: capture risquee
+minimax pur: evite (trop prudent)
+notre algo: prend si gain > risque (equilibre)
