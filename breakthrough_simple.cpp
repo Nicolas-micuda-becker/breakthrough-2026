@@ -360,7 +360,6 @@ void jouer_partie_humain_vs_ia()
     {
         printf("\n--- Tour %d ---\n", tour);
 
-        // Vérifier conditions de fin
         if (a_gagne(&plateau, joueur_humain))
         {
             printf("VICTOIRE HUMAIN ! Un de vos pions a atteint la ligne 8 !\n");
