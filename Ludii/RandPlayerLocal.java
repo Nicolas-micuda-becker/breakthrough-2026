@@ -19,7 +19,7 @@ public class RandPlayerLocal extends AI
 	public final static int EMPTY = 0;
 	public final static int BLACK = 1;
 	public final static int WHITE = 2;
-	public final static String local_player_str = "/Users/n/LudiiPlayers/rand_player";
+	public final static String local_player_str = "/home/nmicuda/Bureau/L3/IA_JEUX/breakthrough-2026/breakthrough_simple";
 
 	protected int player = -1; // player_index
 	
@@ -49,13 +49,13 @@ public class RandPlayerLocal extends AI
 		StringBuilder sb = new StringBuilder();
 		for(int i = 7; i >= 0; i--) {
 			for(int j = 0; j < 8; j++) {
-				if(board[i*8+j] == BLACK) {sb.append("@"); }
-				else if(board[i*8+j] == WHITE) {sb.append("O"); }
+				if(board[i*8+j] == BLACK) {sb.append("1"); }
+				else if(board[i*8+j] == WHITE) {sb.append("0"); }
 				else { sb.append("."); }
 			}
 		}
-		String turn = "O";
-		if(player==2) turn = "@";
+		String turn = "0";
+		if(player==2) turn = "1";
 		String res = "";		
 		int line_i = -1;
 		int col_i = -1;
